@@ -34,10 +34,24 @@ function App() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Handle form submission, e.g., send to backend or show success message
-    setIsModalOpen(true)
+    try {
+      const response = await fetch('https://formspree.io/f/xqarwqzp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+      if (response.ok) {
+        setIsModalOpen(true)
+      } else {
+        alert('Failed to submit form. Please try again.')
+      }
+    } catch (error) {
+      alert('Error submitting form: ' + error.message)
+    }
   }
 
   const propertyOptions = [
