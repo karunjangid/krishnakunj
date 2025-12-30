@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import logo from './assets/logo.png'
-import walkthroughVideo from './assets/walkthrough.mp4'
 import './App.css'
 
 function App() {
@@ -15,6 +14,9 @@ function App() {
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showThankYou, setShowThankYou] = useState(false)
+  const [isVideoLoading, setIsVideoLoading] = useState(true)
+  const [isMuted, setIsMuted] = useState(false)
+  const videoRef = useRef(null)
 
   useEffect(() => {
     const timer1 = setTimeout(() => setAnimationPhase(1), 500)
@@ -29,6 +31,29 @@ function App() {
       clearTimeout(timer4)
     }
   }, [])
+
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.origin !== 'https://player.vimeo.com') return
+      if (event.data.event === 'ended') {
+        setShowThankYou(true)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+
+    return () => {
+      window.removeEventListener('message', handleMessage)
+    }
+  }, [])
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      const message = isMuted ? { method: 'setVolume', value: 1 } : { method: 'setVolume', value: 0 }
+      videoRef.current.contentWindow.postMessage(JSON.stringify(message), 'https://player.vimeo.com')
+      setIsMuted(!isMuted)
+    }
+  }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -84,6 +109,10 @@ function App() {
       <main className="main-content">
         <h1 className="headline">Are you looking for your dream home in Vaishali Nagar?</h1>
         <p className="subtext">Discover our exclusive 3BHK luxury flats at Krishna Kunj by Jaipur Aashray.</p>
+        <div className="offer-banner">
+          <h2>🎉 Exclusive Offer: Free Swift Car for the First 5 Bookings! 🎉</h2>
+          <p>Book now and get a complimentary Swift car with your dream home.</p>
+        </div>
         <form className="luxury-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="name">Name</label>
@@ -118,10 +147,30 @@ function App() {
           <div className="modal-content">
             <button className="close-button" onClick={() => setIsModalOpen(false)}>×</button>
             {!showThankYou ? (
-              <video autoPlay muted controls className="walkthrough-video" onEnded={() => setShowThankYou(true)}>
-                <source src={walkthroughVideo} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+              <div className="video-container">
+                {isVideoLoading && (
+                  <div className="loading-overlay">
+                    <p>Loading Video...</p>
+                  </div>
+                )}
+                <div className="video-wrapper">
+                  <iframe
+                    ref={videoRef}
+                    src="https://player.vimeo.com/video/1150303140?badge=0&autopause=0&player_id=0&app_id=58479&autoplay=1&title=0&byline=0&portrait=0&quality=1080p&controls=0&rel=0&keyboard=0&fullscreen=0&pip=0"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    title="IMG_1245"
+                    className="walkthrough-video"
+                  onLoad={() => {
+                    setIsVideoLoading(false);
+                    setTimeout(() => setShowThankYou(true), 40000);
+                  }}
+                    onContextMenu={(e) => e.preventDefault()}
+                  ></iframe>
+                  <button className="mute-button" onClick={toggleMute}>
+                    {isMuted ? '🔊' : '🔇'}
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="thank-you-message">
                 <h2>Thank you {formData.name} for showing interest in our property!</h2>
